@@ -11,13 +11,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. GitHub 리포지토리 체크아웃
       - uses: actions/checkout@v4
 
+      # 2. Node.js 버전 설정
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
 
+      # 3. npm 설치, 빌드, 테스트
       - name: npm install, build, and test
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
@@ -28,9 +31,11 @@ jobs:
           npm run build --if-present || echo "Build script not defined, skipping."
           npm run test --if-present || echo "Test script not defined, skipping."
 
+      # 4. 배포를 위한 파일 압축
       - name: Zip artifact for deployment
         run: zip -r release.zip ./*
 
+      # 5. 빌드 아티팩트 업로드
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -47,14 +52,17 @@ jobs:
       id-token: write
 
     steps:
+      # 6. 빌드 아티팩트 다운로드
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: node-app
 
+      # 7. 압축 해제
       - name: Unzip artifact for deployment
         run: unzip release.zip
       
+      # 8. Azure에 로그인
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -63,12 +71,13 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
           client-secret: ${{ secrets.AZUREAPPSERVICE_CLIENTSECRET }}
 
+      # 9. Azure Web App에 배포
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'sa'
-          slot-name: '' # 기본 슬롯 사용
+          app-name: 'sa' # Azure Portal에서 생성한 Web App 이름
+          slot-name: ''  # 기본 슬롯 사용
           package: .
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
